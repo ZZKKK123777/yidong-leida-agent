@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="全市场异动雷达智能体：聚合 Gate.io 与 Hyperliquid 公开行情，扫描价格与成交量异动并自动生成简报。">
+  <title>全市场异动雷达智能体</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <canvas id="starfield" aria-hidden="true"></canvas>
+  <div class="grid-glow" aria-hidden="true"></div>
+
+  <header class="topbar">
+    <div class="brand-block">
+      <div class="badge">币安 Agent 参赛作品 · 方向：数据分析</div>
+      <div class="brand-row">
+        <div class="logo-mark" aria-hidden="true"><span></span><i></i></div>
+        <div>
+          <h1>全市场异动雷达智能体</h1>
+          <p>多币种异动扫描 · 聚合简报 · 双平台交叉观察</p>
+        </div>
+      </div>
+    </div>
+    <div class="status-cluster">
+      <div class="status-pill"><span class="live-dot"></span><strong id="systemStatus">正在连接</strong></div>
+      <div class="status-meta"><span>下次刷新</span><b id="countdown">30s</b></div>
+      <button id="refreshButton" class="refresh-button" type="button">立即扫描</button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero-grid">
+      <article class="radar-card glass-card">
+        <div class="card-heading">
+          <div>
+            <span class="eyebrow">MARKET RADAR（市场雷达）</span>
+            <h2>实时异动扫描</h2>
+          </div>
+          <span id="scanTime" class="time-label">等待首次扫描</span>
+        </div>
+        <div class="radar-stage">
+          <div class="radar-ring ring-1"></div>
+          <div class="radar-ring ring-2"></div>
+          <div class="radar-ring ring-3"></div>
+          <div class="radar-cross horizontal"></div>
+          <div class="radar-cross vertical"></div>
+          <div class="radar-sweep"></div>
+          <div id="radarPoints" class="radar-points"></div>
+          <div class="radar-core"><span id="radarCount">0</span><small>异动目标</small></div>
+        </div>
+        <div class="source-strip">
+          <div><span class="source-dot gate"></span><b>Gate.io</b><small id="gateStatus">待连接</small></div>
+          <div><span class="source-dot hyper"></span><b>Hyperliquid</b><small id="hyperStatus">待连接</small></div>
+          <p>公开只读行情 · 不涉及账户与交易权限</p>
+        </div>
+      </article>
+
+      <section class="metrics-grid" aria-label="市场概览">
+        <article class="metric-card glass-card accent-cyan">
+          <span>已扫描市场</span><strong id="marketCount">0</strong><small>个交易市场</small>
+        </article>
+        <article class="metric-card glass-card accent-purple">
+          <span>显著异动</span><strong id="alertCount">0</strong><small>强度 ≥ 60</small>
+        </article>
+        <article class="metric-card glass-card accent-red">
+          <span>急涨目标</span><strong id="riseCount">0</strong><small>24h 涨幅 ≥ 5%</small>
+        </article>
+        <article class="metric-card glass-card accent-green">
+          <span>急跌目标</span><strong id="fallCount">0</strong><small>24h 跌幅 ≤ -5%</small>
+        </article>
+        <article class="sentiment-card glass-card">
+          <div class="card-heading compact">
+            <div><span class="eyebrow">MARKET PULSE（市场脉搏）</span><h2>异动方向分布</h2></div>
+          </div>
+          <div class="sentiment-track"><i id="sellBar"></i><b id="buyBar"></b></div>
+          <div class="sentiment-labels">
+            <span class="fall-text">卖压/下跌 <b id="sellPercent">50%</b></span>
+            <span class="rise-text">买盘/上涨 <b id="buyPercent">50%</b></span>
+          </div>
+          <p id="marketSummary">首次扫描后自动生成市场概览。</p>
+        </article>
+      </section>
+    </section>
+
+    <section class="control-panel glass-card">
+      <div class="tabs" role="tablist" aria-label="数据平台筛选">
+        <button class="tab active" data-source="all" type="button">全部平台</button>
+        <button class="tab" data-source="Gate.io" type="button">Gate.io</button>
+        <button class="tab" data-source="Hyperliquid" type="button">Hyperliquid</button>
+      </div>
+      <div class="filters">
+        <label>最低异动强度
+          <select id="scoreFilter">
+            <option value="0">全部</option>
+            <option value="40">40+</option>
+            <option value="60" selected>60+</option>
+            <option value="75">75+</option>
+          </select>
+        </label>
+        <label>方向
+          <select id="directionFilter">
+            <option value="all">全部方向</option>
+            <option value="rise">只看上涨</option>
+            <option value="fall">只看下跌</option>
+          </select>
+        </label>
+        <label class="search-box"><span>搜索</span><input id="searchInput" type="search" placeholder="输入 BTC、ETH..." autocomplete="off"></label>
+      </div>
+    </section>
+
+    <section class="content-grid">
+      <article class="ranking-card glass-card">
+        <div class="card-heading">
+          <div><span class="eyebrow">ANOMALY RANKING（异动排行）</span><h2>全市场异动榜</h2></div>
+          <span class="table-tip">点击任意一行查看简报</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>#</th><th>币种 / 平台</th><th>最新价</th><th>24h 涨跌</th><th>24h 成交额</th><th>成交活跃度</th><th>主动方向</th><th>异动强度</th></tr></thead>
+            <tbody id="marketTable"><tr class="loading-row"><td colspan="8">正在连接双平台公开行情...</td></tr></tbody>
+          </table>
+        </div>
+        <div id="emptyState" class="empty-state" hidden>当前筛选条件下暂无目标，请降低异动强度或切换平台。</div>
+      </article>
+
+      <aside class="brief-card glass-card">
+        <div class="card-heading">
+          <div><span class="eyebrow">AI BRIEF（智能简报）</span><h2>异动聚合简报</h2></div>
+          <span id="briefLevel" class="risk-tag">等待数据</span>
+        </div>
+        <div id="briefContent" class="brief-content">
+          <div class="brief-placeholder"><div class="pulse-orb"></div><h3>雷达正在扫描</h3><p>完成首轮扫描后，系统会选择异动强度最高的币种生成简报。</p></div>
+        </div>
+      </aside>
+    </section>
+
+    <section class="method-card glass-card">
+      <div><span class="eyebrow">SCORING MODEL（评分模型）</span><h2>异动强度如何计算</h2></div>
+      <div class="method-flow">
+        <div><b>01</b><strong>价格偏移</strong><span>24h 涨跌绝对值</span></div><i>+</i>
+        <div><b>02</b><strong>成交活跃</strong><span>成交额横截面分位</span></div><i>+</i>
+        <div><b>03</b><strong>方向一致</strong><span>涨跌与盘口方向</span></div><i>=</i>
+        <div class="result-node"><b>0–100</b><strong>综合强度</strong><span>越高越值得关注</span></div>
+      </div>
+      <p class="method-note">说明：网页使用交易所公开快照进行横截面监控。“成交活跃度”是当前市场成交额分位代理，不等同于历史成交量倍数；主动方向来自可获得的盘口/涨跌代理，仅用于观察，不构成买卖信号。</p>
+    </section>
+  </main>
+
+  <footer>
+    <p>数据来源：Gate.io Public API（公开接口）与 Hyperliquid Info API（信息接口）。行情可能因网络、地区访问策略或交易所维护而延迟。</p>
+    <p>本工具仅用于数据观察与比赛展示，不构成投资建议。</p>
+  </footer>
+
+  <div id="toast" class="toast" role="status" aria-live="polite"></div>
+  <script src="app.js"></script>
+</body>
+</html>
